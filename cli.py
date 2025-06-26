@@ -39,12 +39,6 @@ class App:
             get_user_id(self.config['apiKey'])
         )
 
-        #### TEMP ####
-        user_info = {
-            "username": "bitboard"
-        }
-        #### ---- ####
-
         self.spinner.stop()
 
         # If for whatever reason that doesn't work; ask.
