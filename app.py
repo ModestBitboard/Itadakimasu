@@ -9,9 +9,9 @@ from utils import AppExit
 
 # Some special values
 __title__ = "Itadakimasu"
-__version__ = "1.0"
+__version__ = "1.1"
 __credit__ = "Built by Bitboard, 2025."
-__summary__ = "A powerful client for the Breadbox archive, built to be a safe haven for nerds."
+__summary__ = "A powerful client for watching anime from the Breadbox archive, built to be a safe haven for nerds."
 
 # Exclude incompatible platforms
 if sys.platform == 'win32':

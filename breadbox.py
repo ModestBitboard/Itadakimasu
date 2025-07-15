@@ -1,6 +1,7 @@
 import requests
 import urllib3
 import hashlib
+import io
 
 from typing import Optional
 
@@ -67,6 +68,49 @@ class Breadbox:
         # Return the get request
         return s.get(url, **kwargs)
 
+    def patch(self, relative_url, data: dict, **kwargs):
+        """
+        Uploads information to breadbox.
+        :param relative_url: The URL relative to breadbox
+        :param data: The data to upload
+        :return:
+        """
+
+        # Set up a requests session for Breadbox
+        s = requests.Session()
+        s.verify = False  # Disabled because Breadbox's certificate is self-signed.
+        s.headers.update({'X-API-KEY': self.api_key})
+
+        # Build URL
+        url = self.base_url + relative_url
+
+        # Return the patch request
+        return s.patch(url, json=data, **kwargs)
+
+    def upload(self, relative_url, content: bytes, filename: str, mimetype: str, **kwargs):
+        """
+        Uploads a file to breadbox.
+        :param relative_url: The URL relative to breadbox
+        :param content: The file content to upload
+        :param filename: The name of the file
+        :param mimetype: The mimetype of the file
+        :return:
+        """
+
+        # Set up a requests session for Breadbox
+        s = requests.Session()
+        s.verify = False  # Disabled because Breadbox's certificate is self-signed.
+        s.headers.update({'X-API-KEY': self.api_key})
+
+        # Build URL
+        url = self.base_url + relative_url
+
+        # IO
+        file = io.BytesIO(content)
+
+        # Return the put request
+        return s.put(url, files={'file': (filename, file, mimetype)}, **kwargs)
+
     def user_info(self) -> Optional[dict]:
         """
         Get information on your user
@@ -86,6 +130,12 @@ class _AbstractArchive:
 
     def fetch(self, relative_url: str, sign_url: bool = False, **kwargs):
         return self.breadbox.fetch(self.url_prefix + relative_url, sign_url, **kwargs)
+
+    def patch(self, relative_url: str, data: dict, **kwargs):
+        return self.breadbox.patch(self.url_prefix + relative_url, data, **kwargs)
+
+    def upload(self, relative_url: str, content: bytes, filename: str, mimetype: str, **kwargs):
+        return self.breadbox.upload(self.url_prefix + relative_url, content, filename, mimetype, **kwargs)
 
     def list_ids(self):
         return self.fetch('/').json()
