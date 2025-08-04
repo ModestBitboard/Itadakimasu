@@ -250,20 +250,9 @@ class App:
 
 
         # ------ Nyaa ID ------
-        inp = Whiptail(
-            title=page_title,
-            backtitle=self.backtitle
-        ).inputbox("What is the ID of the torrent on Nyaa.si?")[0]
+        nyaa_ids = []
 
-        if not inp:
-            self.main_menu()
-
-        while not inp.isnumeric():
-            Whiptail(
-                title=page_title,
-                backtitle=self.backtitle
-            ).msgbox("IDs must be numeric.")
-
+        while True:
             inp = Whiptail(
                 title=page_title,
                 backtitle=self.backtitle
@@ -272,7 +261,29 @@ class App:
             if not inp:
                 self.main_menu()
 
-        nyaa_id = int(inp)
+            while not inp.isnumeric():
+                Whiptail(
+                    title=page_title,
+                    backtitle=self.backtitle
+                ).msgbox("IDs must be numeric.")
+
+                inp = Whiptail(
+                    title=page_title,
+                    backtitle=self.backtitle
+                ).inputbox("What is the ID of the torrent on Nyaa.si?")[0]
+
+                if not inp:
+                    self.main_menu()
+
+            nyaa_ids.append(int(inp))
+
+            if not Whiptail(
+                title=page_title,
+                backtitle=self.backtitle
+            ).yesno(
+                msg="Would you like to add another torrent?",
+                default='no'
+            ): break
 
 
         # ------ Audio ------
@@ -308,7 +319,7 @@ class App:
             f"Breadbox ID: {breadbox_id}\n"
             f"MyAnimeList ID: {mal_id}\n"
             f"AniList ID: {anilist_id}\n"
-            f"Nyaa.si torrent ID: {nyaa_id}\n"
+            f"Nyaa.si torrent IDs: [{', '.join(map(str, nyaa_ids))}]\n"
             f"Audio: [{', '.join(audio_languages)}]\n"
             f"Subtitles: [{', '.join(subtitle_languages)}]\n"
             "\n"
@@ -321,12 +332,21 @@ class App:
             self.main_menu()
 
 
-        # ------ Find magnet link ------
-        self.spinner.start("Finding magnet link...")
+        # ------ Find magnet link and torrent link ------
+        self.spinner.start("Finding torrent info...")
 
         from nyaa import NyaaTorrent
 
-        magnet_link = NyaaTorrent(nyaa_id).magnet
+        torrents = []
+
+        for _id in nyaa_ids:
+            torrent = NyaaTorrent(_id)
+
+            torrents.append({
+                "magnet": torrent.magnet,
+                "file": torrent.file,
+                "url": torrent.url
+            })
 
         self.spinner.stop()
 
@@ -344,10 +364,7 @@ class App:
                 "jikan": f"https://api.jikan.moe/v4/anime/{mal_id}",
                 "anilist": f"https://anilist.co/anime/{anilist_id}"
             },
-            "torrent": {
-                "magnet": magnet_link,
-                "url": f"https://nyaa.si/view/{nyaa_id}"
-            }
+            "torrents": torrents
         }
 
         resp = self.breadbox.anime.patch('/' + str(breadbox_id), data=metadata).json()

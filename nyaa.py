@@ -21,8 +21,11 @@ class NyaaParser(HTMLParser):
         if tag == 'a':
             params = dict(attr)
 
-            if params['href'].startswith('magnet:?'):
-                self.result['magnet'] = params['href']
+            if (res := params['href']).startswith('magnet:?'):
+                self.result['magnet'] = res
+
+            elif (res := params['href']).endswith('.torrent'):
+                self.result['torrent'] = res
 
 
 class NyaaTorrent:
@@ -30,8 +33,16 @@ class NyaaTorrent:
     A torrent page on Nyaa.si
     """
     def __init__(self, nyaa_id: int):
-        html = requests.get('https://nyaa.si/view/' + str(nyaa_id)).text
+        self.url = 'https://nyaa.si/view/' + str(nyaa_id)
+
+        html = requests.get(self.url).text
         parser = NyaaParser()
         parser.feed(html)
 
         self.magnet = parser.result['magnet']
+        self.file = 'https://nyaa.si' + parser.result['torrent']
+
+    def download_file(self) -> bytes:
+        """Fetch the contents of the .torrent file."""
+        return requests.get(self.file).content
+
