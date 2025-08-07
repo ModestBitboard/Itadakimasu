@@ -1,6 +1,7 @@
 class AppExit(Exception):
     """A tool for closing the app from anywhere within the app"""
 
+
 Languages = [
     'english',
     'japanese',
@@ -14,5 +15,10 @@ Languages = [
     'finnish',
     'swedish',
     'norwegian',
-    'danish'
+    'danish',
+    'russian',
+    'arabic',
+    'portuguese',
+    'ukrainian',
+    'polish',
 ]

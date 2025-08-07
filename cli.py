@@ -1,5 +1,6 @@
 from whiptail import Whiptail
 from halo import Halo
+from shutil import get_terminal_size
 import requests
 import subprocess
 from pathlib import Path
@@ -354,7 +355,6 @@ class App:
         # ------ Upload metadata ------
         self.spinner.start("Uploading metadata...")
 
-
         metadata = {
             "title": title,
             "audio": audio_languages,
@@ -414,8 +414,15 @@ class App:
         # Get all anime info
         all_anime_info = self.breadbox.anime.all_info()
 
+        # Calculate the size that the text inside the menu should be.
+        sz = get_terminal_size().columns - 35
+
         # Create a list of whiptail options
-        options = [(anime_id, anime_info['title']) for anime_id, anime_info in all_anime_info.items()]
+        options = []
+        for _id, _info in all_anime_info.items():
+            # https://stackoverflow.com/a/2872519/19693227
+            title = (_info['title'][:sz] + '..') if len(_info['title']) > sz else _info['title']
+            options.append((_id, title))
 
         self.spinner.stop()
 
@@ -444,7 +451,16 @@ class App:
         if len(episodes_info) <= 1:
             self.anime_watch_menu(anime_id, '_movie')
 
-        options = [(str(ep), episodes_info[ep - 1]['title']) for ep in media['episodes']]
+        # Calculate the size that the text inside the menu should be.
+        sz = get_terminal_size().columns - 32
+
+        # Create a list of whiptail options
+        options = []
+        for _ep_num in media['episodes']:
+            _ep_tit = episodes_info[_ep_num - 1]['title']
+            # https://stackoverflow.com/a/2872519/19693227
+            title = (_ep_tit[:sz] + '..') if len(_ep_tit) > sz else _ep_tit
+            options.append((str(_ep_num), title))
 
         if len(media['bonus']) > 0:
             options.append(('*', 'Bonus'))
