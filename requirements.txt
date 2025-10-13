@@ -2,3 +2,4 @@ requests~=2.32.4
 urllib3~=2.5.0
 halo~=0.0.31
 whiptail-dialogs~=0.4.1
+keyring~=25.6.0

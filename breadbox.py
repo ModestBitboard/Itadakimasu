@@ -1,14 +1,22 @@
 import requests
 import urllib3
 import hashlib
+import keyring
 import io
 
 from typing import Optional
 
+# Metadata
+__version__ = "1.0"
+
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# User id helper
+# Helper Exceptions
+class APIKeyError(ValueError): """The API key is invalid or hasn't been set"""
+class ServerNameError(ValueError): """The server hasn't been set"""
+
+# User information helpers
 def get_user_id(api_key: str) -> int:
     """
     Extract a user's ID from their API key
@@ -37,14 +45,30 @@ def get_user_info(base_url: str, user_id: int) -> Optional[dict]:
 
 # Breadbox wrapper
 class Breadbox:
-    def __init__(self, base_url: str, api_key: str):
-        self.base_url = base_url
-        self.api_key = api_key
-        self.user_id = get_user_id(api_key)
+    SERVER = None
+    SERVICE_NAME = 'Breadbox'
+
+    def __init__(self, base_url_override: str = None, api_key_override: str = None):
+        if base_url_override:
+            self.base_url = base_url_override
+        elif Breadbox.SERVER:
+            self.base_url = Breadbox.SERVER
+        else:
+            raise ServerNameError("You need to set a server")
+
+
+        if api_key_override:
+            self.api_key = api_key_override
+        else:
+            self.api_key = keyring.get_password(Breadbox.SERVICE_NAME, 'ApiKey')
+            if not self.api_key:
+                raise APIKeyError("You need to set an API key")
+
+        self.user_id = get_user_id(self.api_key)
 
         self.anime = _AnimeArchive(self)
-        self.games = _GamesArchive(self)
-        self.linux = _LinuxArchive(self)
+        #self.games = _GamesArchive(self)
+        #self.linux = _LinuxArchive(self)
 
     def fetch(self, relative_url, sign_url: bool = False, **kwargs):
         """
@@ -121,6 +145,39 @@ class Breadbox:
             user_id=self.user_id
         )
 
+    @staticmethod
+    def login(api_key: str):
+        """
+        Set the API key stored in the system keyring.
+        """
+        keyring.set_password(
+            service_name=Breadbox.SERVICE_NAME,
+            username='ApiKey',
+            password=api_key
+        )
+
+    @staticmethod
+    def logout():
+        """
+        Delete the API key from the system keyring.
+        """
+        keyring.delete_password(
+            service_name=Breadbox.SERVICE_NAME,
+            username='ApiKey'
+        )
+
+    @staticmethod
+    def check_key(api_key: str) -> bool:
+        """
+        Check if an API key actually points to a user.
+        """
+        if not api_key:
+            return False
+        elif get_user_info(Breadbox.SERVER, get_user_id(api_key)):
+            return True
+        else:
+            return False
+
 
 # Abstract archive wrapper
 class _AbstractArchive:
@@ -140,6 +197,7 @@ class _AbstractArchive:
     def list_ids(self):
         return self.fetch('/').json()
 
+    # noinspection PyShadowingBuiltins
     def info(self, id: int):
         return self.fetch('/' + str(id)).json()
 

@@ -5,7 +5,7 @@ import requests
 import subprocess
 from pathlib import Path
 
-from breadbox import Breadbox, get_user_info, get_user_id
+from breadbox import Breadbox, get_user_info, get_user_id, APIKeyError
 from utils import AppExit, Languages
 
 # noinspection PyAttributeOutsideInit
@@ -28,31 +28,26 @@ class App:
         if not self.config.get('server'):
             self.ask_for_server_url()
 
-        if not self.config.get('apiKey'):
+        # Set breadbox server
+        Breadbox.SERVER = self.config['server']
+
+        # Set up breadbox wrapper
+        try:
+            self.breadbox = Breadbox()
+
+        except APIKeyError:
             self.ask_for_api_key()
+            self.breadbox = Breadbox()
 
         self.spinner.start("Fetching user info...")
 
         # Get user info
-        self.user_info = get_user_info(
-            self.config['server'],
-            get_user_id(self.config['apiKey'])
-        )
+        self.user_info = self.breadbox.user_info()
 
         self.spinner.stop()
 
-        # If for whatever reason that doesn't work; ask.
-        if not self.user_info:
-            self.ask_for_api_key()
-
         # Update backtitle to show user info
         self.backtitle = f" {self.title} v{self.version} | User: {self.user_info['username']}"
-
-        # Set up breadbox wrapper
-        self.breadbox = Breadbox(
-            base_url=self.config['server'],
-            api_key=self.config['apiKey']
-        )
 
         # Load the main menu
         self.main_menu()
@@ -83,17 +78,10 @@ class App:
         if not inp:
             raise AppExit
 
-        user_id = get_user_id(inp)
-        user_info = get_user_info(
-            self.config['server'],
-            user_id
-        )
-
-        if not user_info:
+        if not Breadbox.check_key(inp):
             self.ask_for_api_key()
         else:
-            self.config['apiKey'] = inp
-            self.user_info = user_info
+            Breadbox.login(inp)
 
     def main_menu(self):
         inp = Whiptail(
@@ -144,6 +132,17 @@ class App:
         self.wip_message()  # TODO: Settings menu
 
     def contrib_menu(self):
+        if self.user_info['auth_level'] < 2:
+            Whiptail(
+                title="Breadbox / Contribute",
+                backtitle=self.backtitle
+            ).msgbox(
+                "You lack the permissions required to make changes to the archive.\n"
+                "\n"
+                "Contact the archive's administrator for access if you'd like to make changes."
+            )
+            self.main_menu()
+
         inp = Whiptail(
             title="Breadbox / Contribute",
             backtitle=self.backtitle
@@ -448,7 +447,19 @@ class App:
 
         episodes_info = requests.get(info['external']['jikan'] + '/episodes').json()['data']
 
-        if len(episodes_info) <= 1:
+        if len(media['episodes']) == 0:
+            self.spinner.stop()
+            Whiptail(
+                title="Breadbox / " + info['title'],
+                backtitle=self.backtitle
+            ).msgbox(
+                "This anime seems to be empty.\n"
+                "\n"
+                "Check back again later or contact the archive administrator."
+            )
+            self.anime_archive_menu()
+
+        elif len(episodes_info) <= 1:
             self.anime_watch_menu(anime_id, '_movie')
 
         # Calculate the size that the text inside the menu should be.
@@ -546,6 +557,8 @@ class App:
 
     @staticmethod
     def watch(url):
-        print("VLC is running! I'll wait until it closes.", end="")
-        subprocess.run(['vlc', url], stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
-        print('\r', end="")
+        subprocess.Popen(
+            ['nohup', 'vlc', url, '&'],
+            stderr=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL
+        )

@@ -9,7 +9,7 @@ from utils import AppExit
 
 # Some special values
 __title__ = "Itadakimasu"
-__version__ = "1.2.1"
+__version__ = "1.3.0"
 __credit__ = "Built by Bitboard, 2025."
 __summary__ = "A powerful client for watching anime from the Breadbox archive, built to be a safe haven for nerds."
 
