@@ -5,7 +5,7 @@ import requests
 import subprocess
 from pathlib import Path
 
-from breadbox import Breadbox, get_user_info, get_user_id, APIKeyError
+from breadbox import Breadbox, APIKeyError
 from utils import AppExit, Languages
 
 # noinspection PyAttributeOutsideInit
@@ -558,7 +558,7 @@ class App:
     @staticmethod
     def watch(url):
         subprocess.Popen(
-            ['nohup', 'vlc', url, '&'],
+            ['nohup', 'vlc', url],
             stderr=subprocess.DEVNULL,
             stdout=subprocess.DEVNULL
         )
