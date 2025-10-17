@@ -1,0 +1,15 @@
+{
+  "root_bg": "#db6212",
+  "root_fg": "#ffb88a",
+  "window_bg": "#2a2a2a",
+  "window_fg": "#fafafa",
+  "window_title": "#db6212",
+  "border": "#853805",
+  "shadow": "#853805",
+  "element_bg": "#2f2f2f",
+  "element_fg": "#fafafa",
+  "select_bg": "#5f5f5f",
+  "select_fg": "#fafafa",
+  "focus_bg": "#db6212",
+  "focus_fg": "#fafafa"
+}
